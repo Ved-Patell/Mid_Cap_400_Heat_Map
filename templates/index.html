@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S&amp;P MidCap 400 Sector Heatmap</title>
+<style>
+  :root {
+    --bg:    #14161a;
+    --panel: #1b1f25;
+    --rule:  #2b3038;
+    --text:  #e8eaed;
+    --muted: #939ba5;
+    --up:    #46a97c;
+    --down:  #cf5561;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px 20px 56px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+
+  .page { max-width: 1180px; margin: 0 auto; }
+
+  h1 {
+    font-size: clamp(24px, 4vw, 34px);
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+  }
+
+  .dateline {
+    color: var(--muted);
+    font-size: 14px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .stat { background: var(--bg); padding: 18px 20px 18px 0; }
+
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .stat-value { font-size: 24px; font-weight: 600; margin-top: 2px; }
+  .stat-note  { font-size: 12px; color: var(--muted); }
+
+  .up   { color: var(--up); }
+  .down { color: var(--down); }
+
+  .chart {
+    margin-top: 22px;
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 8px;
+  }
+
+  .key {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .ramp {
+    width: 200px;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--down), #20242a, var(--up));
+  }
+
+  .error {
+    margin-top: 26px;
+    padding: 20px 22px;
+    background: #241a1c;
+    border-left: 3px solid var(--down);
+    border-radius: 6px;
+  }
+
+  .error h2 { margin: 0 0 6px; font-size: 17px; }
+  .error p  { margin: 0 0 6px; color: #c6a6aa; font-size: 14px; }
+  .error code { font-size: 12px; color: var(--muted); word-break: break-word; }
+
+  footer {
+    margin-top: 38px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>S&amp;P MidCap 400 Sector Heatmap</h1>
+
+  {% if error %}
+
+    <p class="dateline">Data unavailable</p>
+    <div class="error">
+      <h2>Couldn't load market data</h2>
+      <p>Yahoo Finance limits heavy requests, so this usually clears on its
+         own. Try reloading in a minute.</p>
+      <code>{{ error }}</code>
+    </div>
+
+  {% else %}
+
+    <p class="dateline">Daily returns for {{ stats.as_of }}</p>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Advancing</div>
+        <div class="stat-value up">{{ stats.advancers }}</div>
+        <div class="stat-note">of {{ stats.total }} companies</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Declining</div>
+        <div class="stat-value down">{{ stats.decliners }}</div>
+        <div class="stat-note">of {{ stats.total }} companies</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Median move</div>
+        <div class="stat-value {{ 'up' if stats.median >= 0 else 'down' }}">
+          {{ '%+.2f'|format(stats.median) }}%
+        </div>
+        <div class="stat-note">across the index</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Leading sector</div>
+        <div class="stat-value {{ 'up' if stats.leading_value >= 0 else 'down' }}">
+          {{ '%+.2f'|format(stats.leading_value) }}%
+        </div>
+        <div class="stat-note">{{ stats.leading_sector }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Lagging sector</div>
+        <div class="stat-value {{ 'up' if stats.lagging_value >= 0 else 'down' }}">
+          {{ '%+.2f'|format(stats.lagging_value) }}%
+        </div>
+        <div class="stat-note">{{ stats.lagging_sector }}</div>
+      </div>
+      {% if stats.benchmark is not none %}
+      <div class="stat">
+        <div class="stat-label">Index (MDY)</div>
+        <div class="stat-value {{ 'up' if stats.benchmark >= 0 else 'down' }}">
+          {{ '%+.2f'|format(stats.benchmark) }}%
+        </div>
+        <div class="stat-note">tracking ETF</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="chart">{{ chart|safe }}</div>
+
+    <div class="key">
+      <span>&minus;3%</span><div class="ramp"></div><span>+3%</span>
+      <span>Each box is one company, grouped into blocks by sector.
+            Hover for details.</span>
+    </div>
+
+  {% endif %}
+
+  <footer>
+    Company list from Wikipedia &middot; Prices from Yahoo Finance &middot;
+    Index quote from Alpha Vantage.
+    Built for an Intro to Python course project. Not investment advice.
+  </footer>
+
+</div>
+</body>
+</html>
