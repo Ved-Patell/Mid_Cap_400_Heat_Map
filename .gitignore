@@ -1,0 +1,15 @@
+
+# this is the ".gitignore" file
+# we list other files in this repo that should be ignored from version control
+
+# ignore secret credentials stored as environment variables in the ".env" file:
+.env
+
+# ignore cache files (resulting from running scripts and tests):
+__pycache__
+.pytest_cache
+
+# ignore hidden clutter file (Mac OS) only:
+.DS_Store
+
+Investigation Notebook_Paranj_Ved.ipynb
