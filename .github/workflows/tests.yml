@@ -1,0 +1,31 @@
+name: Tests
+
+# Runs on every push and every pull request, so problems show up before code reaches the main branch.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        # No API key is set here on purpose. The suite makes no network requests, so it must pass without one.
+        run: pytest -v
