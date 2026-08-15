@@ -51,3 +51,34 @@ def fetch_constituents():
     return parse_constituents(response.text)  
 #.text is the page's HTML as a string, which is handed to the parser.
 
+def daily_returns(closes):
+    closes = closes.dropna(axis=1, how="all")
+
+    if len(closes) < 2:
+        raise ValueError("Need at least two trading days to compute a return.")
+
+#using iloc to return last 2 days return and converting to percentage
+    change = (closes.iloc[-1] / closes.iloc[-2] -1) * 100
+
+    change = change.dropna()  #drops anything still missing
+
+    returns = pd.DataFrame({"Symbol": change.index, "Return": change.values})
+#change is a series with tickers as labels, we turn into two-column table.
+
+    return returns.reset_index(drop=True), closes.index[-1]
+
+def fetch_prices(symbols):
+    data = yf.download(   #yf.download allows us to take the whole list rather than one ticker at a time
+        symbols,
+        period=HISTORY_PERIOD,
+        interval="1d",
+        auto_adjust=True,  #adjusts for stock splits
+        progress=False, #no progress bar in web server log
+        threads=True, #fetch several tickers at a time
+    )
+   
+    if data.empty:
+        raise ValueError("Yahoo Finance returned no data.")  #In case Yahoo limits us
+    return daily_returns(data["Close"])
+
+     
