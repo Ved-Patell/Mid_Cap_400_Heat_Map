@@ -20,7 +20,14 @@ def build_page():
     companies = datasets.fetch_constituents()
     returns, as_of = datasets.fetch_prices(companies["Symbol"].tolist())
 
-    merged = chart.merge_returns(returns, companies)
+    try:
+        weights = datasets.fetch_index_weights()
+    except Exception:
+        app.logger.warning("Could not load index weights; using equal sizes")
+        weights = None
+
+    merged = chart.merge_returns(returns, companies, weights=weights)
+
     if merged.empty:
         raise ValueError("No companies had usable price data.")
     

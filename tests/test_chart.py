@@ -18,14 +18,41 @@ class TestMergeReturns:
 
     def test_drops_symbols_with_no_sector(self, companies):
         # A ticker Yahoo returns but Wikipedia has never heard of cannot be placed in a sector block, so it should be left out.
-        returns = pd.DataFrame({"Symbol": ["AAON", "MYSTERY"],
-                                "Return": [1.0, 2.0]})
+        returns = pd.DataFrame({"Symbol": ["AAON", "MYSTERY"], "Return": [1.0, 2.0]})
         merged = merge_returns(returns, companies)
         assert merged["Symbol"].tolist() == ["AAON"]
 
     def test_adds_an_equal_size_column(self, returns, companies):
+        # With no weights supplied, every box is the same size.
         merged = merge_returns(returns, companies)
         assert set(merged["Size"]) == {1}
+
+    def test_uses_weights_for_size_when_supplied(self, returns, companies, weights):
+        merged = merge_returns(returns, companies, weights=weights)
+        aaon = merged.loc[merged["Symbol"] == "AAON", "Size"].iloc[0]
+        assert aaon == pytest.approx(0.40)
+
+    def test_fills_a_missing_weight_with_the_median(self, returns, companies):
+        # A company in the index but absent from the holdings file should still appear at a middling size, not vanish or break the chart.
+        partial = pd.DataFrame({
+            "Symbol": ["AAON", "MOG-A", "ZION"],
+            "Weight": [0.2, 0.4, 0.6],
+        })
+        merged = merge_returns(returns, companies, weights=partial)
+        celh = merged.loc[merged["Symbol"] == "CELH", "Size"].iloc[0]
+        assert celh == pytest.approx(0.4)
+
+    def test_no_size_is_zero_or_missing(self, returns, companies):
+        # px.treemap breaks on a zero or NaN size, so this guards the fallback above.
+        partial = pd.DataFrame({"Symbol": ["AAON"], "Weight": [0.5]})
+        merged = merge_returns(returns, companies, weights=partial)
+        assert merged["Size"].notna().all()
+        assert (merged["Size"] > 0).all()
+
+
+    #def test_adds_an_equal_size_column(self, returns, companies):
+        #merged = merge_returns(returns, companies)
+        #assert set(merged["Size"]) == {1}
 
 
 class TestSummarize:

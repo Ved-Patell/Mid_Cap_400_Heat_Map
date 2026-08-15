@@ -7,20 +7,24 @@ COLOR_FLAT = "#20242a"
 COLOR_UP = "#2F8F63"
 COLOR_RANGE = 3.0
 
-def merge_returns(returns, companies):
-    """Join returns onto the company list, keeping only rows with a sector.
-
-    A ticker with no matching sector cannot be placed in a sector block, so
-    it is dropped rather than grouped under a blank heading.
-    """
+def merge_returns(returns, companies, weights=None):
+    #Attach each company's sector, name, and box size to its return.
     merged = returns.merge(companies, on="Symbol", how="left")
     merged = merged.dropna(subset=["GICS Sector"])
-    merged["Size"] = 1  # equal-sized boxes; see README for the alternative
+
+    if weights is None:
+        # No weights available, so every box is the same size.
+        merged["Size"] = 1
+    else:
+        merged = merged.merge(weights, on="Symbol", how="left")
+        # A missing or zero size breaks px.treemap, so fall back to the median rather than dropping the company off the chart.
+        merged["Size"] = merged["Weight"].fillna(merged["Weight"].median())
+
     return merged.reset_index(drop=True)
 
 
 def summarize(merged, as_of, benchmark=None):
-    """Build the plain-language numbers shown above the chart."""
+    #Build the plain-language numbers shown above the chart.
     advancers = int((merged["Return"] > 0).sum())
     by_sector = merged.groupby("GICS Sector")["Return"].mean().sort_values()
 

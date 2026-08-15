@@ -23,6 +23,38 @@ WIKI_HTML = """
 """
 
 
+# A trimmed copy of the IJH holdings file, keeping the real shape.
+HOLDINGS_CSV = '''iShares Core S&P Mid-Cap ETF
+Fund Holdings as of,"Aug 13, 2026"
+Inception Date,"May 22, 2000"
+Shares Outstanding,"1,636,450,000.00"
+Stock,"-"
+Bond,"-"
+Cash,"-"
+Other,"-"
+
+Ticker,Name,Type,Sector,Asset Class,Market Value,Weight (%)
+"AAON","AAON INC","EQUITY","Industrials","Equity","500,000,000.00","0.40"
+"MOG.A","MOOG INC CLASS A","EQUITY","Industrials","Equity","400,000,000.00","0.32"
+"ZION","ZIONS BANCORP","EQUITY","Financials","Equity","600,000,000.00","0.48"
+"CELH","CELSIUS HOLDINGS","EQUITY","Consumer Staples","Equity","300,000,000.00","0.24"
+"USD","USD CASH","CASH","Cash and/or Derivatives","Cash","1,000,000.00","-"
+'''
+
+@pytest.fixture
+def holdings_csv():
+    """Sample IJH holdings file contents."""
+    return HOLDINGS_CSV
+
+
+@pytest.fixture
+def weights():
+    """Index weights as parse_index_weights would return them."""
+    return pd.DataFrame({
+        "Symbol": ["AAON", "MOG-A", "ZION", "CELH"],
+        "Weight": [0.40, 0.32, 0.48, 0.24],
+    })
+
 @pytest.fixture
 def wiki_html():
     #Sample Wikipedia page HTML.
