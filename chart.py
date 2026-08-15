@@ -2,10 +2,10 @@
 
 import plotly.express as px
 
-from config import COLOR_DOWN, COLOR_FLAT, COLOR_RANGE, COLOR_UP
-
-SIZE_COLUMN = "Size"
-
+COLOR_DOWN = "#b03a48"
+COLOR_FLAT = "#20242a"
+COLOR_UP = "#2F8F63"
+COLOR_RANGE = 3.0
 
 def merge_returns(returns, companies):
     """Join returns onto the company list, keeping only rows with a sector.
@@ -15,7 +15,7 @@ def merge_returns(returns, companies):
     """
     merged = returns.merge(companies, on="Symbol", how="left")
     merged = merged.dropna(subset=["GICS Sector"])
-    merged[SIZE_COLUMN] = 1  # equal-sized boxes; see README for the alternative
+    merged["Size"] = 1  # equal-sized boxes; see README for the alternative
     return merged.reset_index(drop=True)
 
 
@@ -43,7 +43,7 @@ def build_treemap(merged):
     figure = px.treemap(
         merged,
         path=["GICS Sector", "Symbol"],
-        values=SIZE_COLUMN,
+        values="Size",
         color="Return",
         color_continuous_scale=[
             [0.0, COLOR_DOWN],
