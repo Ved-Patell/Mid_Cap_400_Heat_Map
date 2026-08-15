@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from datasets import daily_returns, normalize_symbol, parse_constituents
+from datasets import (daily_returns, normalize_symbol, parse_constituents,parse_index_weights)
 
 
 class TestNormalizeSymbol:
@@ -63,8 +63,7 @@ class TestDailyReturns:
         assert zion == pytest.approx(0.0)
 
     def test_drops_tickers_with_no_data(self, closes):
-        # A ticker Yahoo knows nothing about should be left out entirely,
-        # not drawn as a flat box that looks like a real result.
+        # A ticker Yahoo knows nothing about should be left out entirely,not drawn as a flat box that looks like a real result.
         returns, _ = daily_returns(closes)
         assert "DEAD" not in returns["Symbol"].tolist()
         assert len(returns) == 3
@@ -89,3 +88,35 @@ class TestDailyReturns:
         )
         with pytest.raises(ValueError):
             daily_returns(closes)
+class TestParseIndexWeights:
+    """Reading the IJH holdings file, which sizes the boxes."""
+
+    def test_returns_symbol_and_weight(self, holdings_csv):
+        weights = parse_index_weights(holdings_csv)
+        assert list(weights.columns) == ["Symbol", "Weight"]
+
+    def test_skips_the_metadata_rows(self, holdings_csv):
+        # The file opens with eight lines of fund details before the real header, and none of those should become data rows.
+        weights = parse_index_weights(holdings_csv)
+        assert "iShares Core S&P Mid-Cap ETF" not in weights["Symbol"].tolist()
+
+    def test_normalizes_symbols(self, holdings_csv):
+        # iShares writes MOG.A, but our returns use MOG-A, so they have to match or the merge silently loses the company.
+        symbols = parse_index_weights(holdings_csv)["Symbol"].tolist()
+        assert "MOG-A" in symbols
+        assert "MOG.A" not in symbols
+
+    def test_converts_weights_to_numbers(self, holdings_csv):
+        weights = parse_index_weights(holdings_csv)
+        aaon = weights.loc[weights["Symbol"] == "AAON", "Weight"].iloc[0]
+        assert aaon == pytest.approx(0.40)
+
+    def test_drops_the_cash_row(self, holdings_csv):
+        # The file ends with cash and futures rows whose weight is "-".
+        weights = parse_index_weights(holdings_csv)
+        assert "USD" not in weights["Symbol"].tolist()
+        assert len(weights) == 4
+
+    def test_raises_when_the_header_is_missing(self):
+        with pytest.raises(ValueError):
+            parse_index_weights("some,unrelated,file\n1,2,3\n")
